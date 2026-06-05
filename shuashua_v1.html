@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周大米学学学🐧</title>
+    <link rel="icon" type="image/png" href="image/penguinicon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        
+        body {
+            background-color: #FFD4FA;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            margin: 20px 0;
+        }
+
+        .title {
+            font-size: 32px;
+            color: #DB7FD1;
+            font-weight: bold;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #A45FBA;
+            margin-top: 8px;
+        }
+
+        /* Flashcard flip style */
+        .card-container {
+            perspective: 1000px;
+            margin: 30px auto;
+            width: 300px;
+            height: 350px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 20px;
+        }
+
+        /* Flip effect */
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Front: Chinese character */
+        .card-front {
+            background-color: white;
+            border: 4px solid #DB7FD1;
+        }
+
+        .chinese-word {
+            font-size: 50px;
+            color: #DB7FD1;
+            font-weight: bold;
+        }
+
+        .prompt {
+            font-size: 16px;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        /* Back: Pinyin + meaning */
+        .card-back {
+            background-color: #DB7FD1;
+            color: white;
+            transform: rotateY(180deg);
+            border: 4px solid white;
+        }
+
+        .pinyin {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .meaning {
+            font-size: 24px;
+        }
+
+        /* Buttons */
+        .btn-group {
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 18px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 30px;
+            background-color: #A45FBA;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #A45FBA;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">周大米学学学
+        <img src="image/penguincrown.png" alt="penguin crown" width="40" height="40">
+        </h1>
+        <p class="subtitle">Primary 5 Chinese Character Learning</p>
+    </div>
+
+    <!-- Flashcard -->
+    <div class="card-container">
+        <div class="flashcard" id="flashcard">
+            <!-- Front -->
+            <div class="card-front">
+                <div class="chinese-word" id="chineseWord">字</div>
+                <p class="prompt">Click the card to flip!</p>
+            </div>
+            <!-- Back -->
+            <div class="card-back">
+                <div class="pinyin" id="pinyin">zì</div>
+                <div class="meaning" id="meaning">character, word</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="btn-group">
+        <button onclick="randomWord()">随机生字</button>
+    </div>
+
+    <script>
+        // Primary 5 Chinese Word Bank | Total:500 entries (common words + idioms/chengyu mixed, single char + two-word + four-character idiom)
+        const wordBank = [
+        //100 单词
+        { word: "爱", pinyin: "ài", meaning: "love" },
+        { word: "安", pinyin: "ān", meaning: "peaceful, safe" },
+        { word: "把", pinyin: "bǎ", meaning: "hold, grasp" },
+        { word: "帮", pinyin: "bāng", meaning: "help" },
+        { word: "保", pinyin: "bǎo", meaning: "protect" },
+        { word: "比", pinyin: "bǐ", meaning: "compare" },
+        { word: "变", pinyin: "biàn", meaning: "change" },
+        { word: "表", pinyin: "biǎo", meaning: "show, express" },
+        { word: "才", pinyin: "cái", meaning: "talent, only then" },
+        { word: "参", pinyin: "cān", meaning: "participate" },
+
+        { word: "层", pinyin: "céng", meaning: "layer, floor" },
+        { word: "查", pinyin: "chá", meaning: "check, inspect" },
+        { word: "常", pinyin: "cháng", meaning: "often" },
+        { word: "成", pinyin: "chéng", meaning: "become, succeed" },
+        { word: "诚", pinyin: "chéng", meaning: "honest" },
+        { word: "持", pinyin: "chí", meaning: "hold, maintain" },
+        { word: "迟", pinyin: "chí", meaning: "late" },
+        { word: "冲", pinyin: "chōng", meaning: "rush" },
+        { word: "初", pinyin: "chū", meaning: "beginning" },
+        { word: "传", pinyin: "chuán", meaning: "pass on" },
+
+        { word: "创", pinyin: "chuàng", meaning: "create" },
+        { word: "达", pinyin: "dá", meaning: "reach" },
+        { word: "带", pinyin: "dài", meaning: "bring" },
+        { word: "导", pinyin: "dǎo", meaning: "guide" },
+        { word: "登", pinyin: "dēng", meaning: "climb" },
+        { word: "底", pinyin: "dǐ", meaning: "bottom" },
+        { word: "典", pinyin: "diǎn", meaning: "classic, ceremony" },
+        { word: "调", pinyin: "diào", meaning: "adjust" },
+        { word: "读", pinyin: "dú", meaning: "read" },
+        { word: "断", pinyin: "duàn", meaning: "break, judge" },
+
+        { word: "队", pinyin: "duì", meaning: "team" },
+        { word: "发", pinyin: "fā", meaning: "send, develop" },
+        { word: "反", pinyin: "fǎn", meaning: "opposite" },
+        { word: "放", pinyin: "fàng", meaning: "release" },
+        { word: "飞", pinyin: "fēi", meaning: "fly" },
+        { word: "服", pinyin: "fú", meaning: "obey, clothing" },
+        { word: "改", pinyin: "gǎi", meaning: "change" },
+        { word: "感", pinyin: "gǎn", meaning: "feel" },
+        { word: "功", pinyin: "gōng", meaning: "achievement" },
+        { word: "观", pinyin: "guān", meaning: "observe" },
+
+        { word: "管", pinyin: "guǎn", meaning: "manage" },
+        { word: "规", pinyin: "guī", meaning: "rule" },
+        { word: "贵", pinyin: "guì", meaning: "valuable" },
+        { word: "害", pinyin: "hài", meaning: "harm" },
+        { word: "合", pinyin: "hé", meaning: "combine" },
+        { word: "护", pinyin: "hù", meaning: "protect" },
+        { word: "华", pinyin: "huá", meaning: "splendid" },
+        { word: "怀", pinyin: "huái", meaning: "cherish" },
+        { word: "环", pinyin: "huán", meaning: "surround" },
+        { word: "获", pinyin: "huò", meaning: "obtain" },
+
+        { word: "积", pinyin: "jī", meaning: "accumulate" },
+        { word: "技", pinyin: "jì", meaning: "skill" },
+        { word: "际", pinyin: "jì", meaning: "boundary, international" },
+        { word: "坚", pinyin: "jiān", meaning: "firm" },
+        { word: "检", pinyin: "jiǎn", meaning: "inspect" },
+        { word: "讲", pinyin: "jiǎng", meaning: "speak" },
+        { word: "健", pinyin: "jiàn", meaning: "healthy" },
+        { word: "交", pinyin: "jiāo", meaning: "hand over" },
+        { word: "节", pinyin: "jié", meaning: "festival, save" },
+        { word: "警", pinyin: "jǐng", meaning: "alert" },
+
+        { word: "救", pinyin: "jiù", meaning: "save" },
+        { word: "举", pinyin: "jǔ", meaning: "raise" },
+        { word: "具", pinyin: "jù", meaning: "tool, possess" },
+        { word: "决", pinyin: "jué", meaning: "decide" },
+        { word: "均", pinyin: "jūn", meaning: "equal" },
+        { word: "科", pinyin: "kē", meaning: "subject" },
+        { word: "刻", pinyin: "kè", meaning: "engrave, moment" },
+        { word: "课", pinyin: "kè", meaning: "lesson" },
+        { word: "控", pinyin: "kòng", meaning: "control" },
+        { word: "况", pinyin: "kuàng", meaning: "situation" },
+
+        { word: "类", pinyin: "lèi", meaning: "type" },
+        { word: "良", pinyin: "liáng", meaning: "good" },
+        { word: "烈", pinyin: "liè", meaning: "strong, intense" },
+        { word: "领", pinyin: "lǐng", meaning: "lead" },
+        { word: "录", pinyin: "lù", meaning: "record" },
+        { word: "旅", pinyin: "lǚ", meaning: "travel" },
+        { word: "略", pinyin: "lüè", meaning: "strategy, brief" },
+        { word: "漫", pinyin: "màn", meaning: "overflow" },
+        { word: "贸", pinyin: "mào", meaning: "trade" },
+        { word: "密", pinyin: "mì", meaning: "close, dense" },
+
+        { word: "免", pinyin: "miǎn", meaning: "avoid" },
+        { word: "模", pinyin: "mó", meaning: "model" },
+        { word: "耐", pinyin: "nài", meaning: "endure" },
+        { word: "脑", pinyin: "nǎo", meaning: "brain" },
+        { word: "能", pinyin: "néng", meaning: "ability" },
+        { word: "判", pinyin: "pàn", meaning: "judge" },
+        { word: "配", pinyin: "pèi", meaning: "match" },
+        { word: "培", pinyin: "péi", meaning: "cultivate" },
+        { word: "评", pinyin: "píng", meaning: "evaluate" },
+        { word: "破", pinyin: "pò", meaning: "break" },
+
+        { word: "启", pinyin: "qǐ", meaning: "open, inspire" },
+        { word: "签", pinyin: "qiān", meaning: "sign" },
+        { word: "勤", pinyin: "qín", meaning: "diligent" },
+        { word: "庆", pinyin: "qìng", meaning: "celebrate" },
+        { word: "求", pinyin: "qiú", meaning: "seek" },
+        { word: "权", pinyin: "quán", meaning: "right, authority" },
+        { word: "确", pinyin: "què", meaning: "certain" },
+        { word: "群", pinyin: "qún", meaning: "group" },
+        { word: "燃", pinyin: "rán", meaning: "burn" },
+        { word: "让", pinyin: "ràng", meaning: "allow, give way" },
+
+        //350 词语
+
+        { word: "爱护", pinyin: "ài hù", meaning: "take good care of" },
+        { word: "安静", pinyin: "ān jìng", meaning: "quiet" },
+        { word: "安全", pinyin: "ān quán", meaning: "safe, safety" },
+        { word: "安排", pinyin: "ān pái", meaning: "arrange" },
+        { word: "安慰", pinyin: "ān wèi", meaning: "comfort" },
+
+        { word: "帮助", pinyin: "bāng zhù", meaning: "help" },
+        { word: "保护", pinyin: "bǎo hù", meaning: "protect" },
+        { word: "保证", pinyin: "bǎo zhèng", meaning: "guarantee" },
+        { word: "报名", pinyin: "bào míng", meaning: "register" },
+        { word: "抱歉", pinyin: "bào qiàn", meaning: "sorry" },
+
+        { word: "比赛", pinyin: "bǐ sài", meaning: "competition" },
+        { word: "表扬", pinyin: "biǎo yáng", meaning: "praise" },
+        { word: "表现", pinyin: "biǎo xiàn", meaning: "performance" },
+        { word: "表演", pinyin: "biǎo yǎn", meaning: "performance, act" },
+        { word: "变化", pinyin: "biàn huà", meaning: "change" },
+
+        { word: "标准", pinyin: "biāo zhǔn", meaning: "standard" },
+        { word: "冰箱", pinyin: "bīng xiāng", meaning: "refrigerator" },
+        { word: "毕业", pinyin: "bì yè", meaning: "graduate" },
+        { word: "编辑", pinyin: "biān jí", meaning: "edit" },
+        { word: "辩论", pinyin: "biàn lùn", meaning: "debate" },
+
+        { word: "参加", pinyin: "cān jiā", meaning: "participate" },
+        { word: "参观", pinyin: "cān guān", meaning: "visit" },
+        { word: "仓库", pinyin: "cāng kù", meaning: "warehouse" },
+        { word: "操场", pinyin: "cāo chǎng", meaning: "school field" },
+        { word: "测验", pinyin: "cè yàn", meaning: "test" },
+
+        { word: "层次", pinyin: "céng cì", meaning: "level" },
+        { word: "查找", pinyin: "chá zhǎo", meaning: "search for" },
+        { word: "常识", pinyin: "cháng shí", meaning: "common knowledge" },
+        { word: "诚实", pinyin: "chéng shí", meaning: "honest" },
+        { word: "成功", pinyin: "chéng gōng", meaning: "success" },
+
+        { word: "成绩", pinyin: "chéng jì", meaning: "results" },
+        { word: "成长", pinyin: "chéng zhǎng", meaning: "grow up" },
+        { word: "承担", pinyin: "chéng dān", meaning: "undertake" },
+        { word: "持续", pinyin: "chí xù", meaning: "continue" },
+        { word: "迟到", pinyin: "chí dào", meaning: "late" },
+
+        { word: "冲动", pinyin: "chōng dòng", meaning: "impulsive" },
+        { word: "充分", pinyin: "chōng fèn", meaning: "sufficient" },
+        { word: "崇拜", pinyin: "chóng bài", meaning: "admire" },
+        { word: "重复", pinyin: "chóng fù", meaning: "repeat" },
+        { word: "传统", pinyin: "chuán tǒng", meaning: "tradition" },
+
+        { word: "创造", pinyin: "chuàng zào", meaning: "create" },
+        { word: "窗帘", pinyin: "chuāng lián", meaning: "curtain" },
+        { word: "聪明", pinyin: "cōng míng", meaning: "clever" },
+        { word: "促进", pinyin: "cù jìn", meaning: "promote" },
+        { word: "错误", pinyin: "cuò wù", meaning: "mistake" },
+
+        { word: "答案", pinyin: "dá àn", meaning: "answer" },
+        { word: "打扫", pinyin: "dǎ sǎo", meaning: "clean" },
+        { word: "打算", pinyin: "dǎ suàn", meaning: "plan" },
+        { word: "大概", pinyin: "dà gài", meaning: "probably" },
+        { word: "代表", pinyin: "dài biǎo", meaning: "represent" },
+
+        { word: "带领", pinyin: "dài lǐng", meaning: "lead" },
+        { word: "单纯", pinyin: "dān chún", meaning: "simple, pure" },
+        { word: "担心", pinyin: "dān xīn", meaning: "worry" },
+        { word: "耽误", pinyin: "dān wu", meaning: "delay" },
+        { word: "当地", pinyin: "dāng dì", meaning: "local" },
+
+        { word: "导致", pinyin: "dǎo zhì", meaning: "cause" },
+        { word: "道路", pinyin: "dào lù", meaning: "road" },
+        { word: "道理", pinyin: "dào lǐ", meaning: "reason" },
+        { word: "登记", pinyin: "dēng jì", meaning: "register" },
+        { word: "等待", pinyin: "děng dài", meaning: "wait" },
+
+        { word: "低头", pinyin: "dī tóu", meaning: "lower one's head" },
+        { word: "的确", pinyin: "dí què", meaning: "indeed" },
+        { word: "地点", pinyin: "dì diǎn", meaning: "location" },
+        { word: "地铁", pinyin: "dì tiě", meaning: "MRT, subway" },
+        { word: "调查", pinyin: "diào chá", meaning: "investigate" },
+
+        { word: "钓鱼", pinyin: "diào yú", meaning: "fishing" },
+        { word: "电脑", pinyin: "diàn nǎo", meaning: "computer" },
+        { word: "电梯", pinyin: "diàn tī", meaning: "elevator" },
+        { word: "电影", pinyin: "diàn yǐng", meaning: "movie" },
+        { word: "电子", pinyin: "diàn zǐ", meaning: "electronic" },
+
+        { word: "丢失", pinyin: "diū shī", meaning: "lose" },
+        { word: "懂得", pinyin: "dǒng de", meaning: "understand" },
+        { word: "动物", pinyin: "dòng wù", meaning: "animal" },
+        { word: "独立", pinyin: "dú lì", meaning: "independent" },
+        { word: "锻炼", pinyin: "duàn liàn", meaning: "exercise" },
+
+        { word: "对待", pinyin: "duì dài", meaning: "treat" },
+        { word: "队伍", pinyin: "duì wǔ", meaning: "team" },
+        { word: "多余", pinyin: "duō yú", meaning: "extra" },
+        { word: "儿童", pinyin: "ér tóng", meaning: "children" },
+        { word: "发表", pinyin: "fā biǎo", meaning: "publish" },
+
+        { word: "发现", pinyin: "fā xiàn", meaning: "discover" },
+        { word: "发展", pinyin: "fā zhǎn", meaning: "develop" },
+        { word: "法律", pinyin: "fǎ lǜ", meaning: "law" },
+        { word: "反对", pinyin: "fǎn duì", meaning: "oppose" },
+        { word: "方案", pinyin: "fāng àn", meaning: "plan" },
+
+        { word: "方向", pinyin: "fāng xiàng", meaning: "direction" },
+        { word: "方法", pinyin: "fāng fǎ", meaning: "method" },
+        { word: "访问", pinyin: "fǎng wèn", meaning: "visit" },
+        { word: "放弃", pinyin: "fàng qì", meaning: "give up" },
+        { word: "放心", pinyin: "fàng xīn", meaning: "rest assured" },
+
+        { word: "飞行", pinyin: "fēi xíng", meaning: "fly" },
+        { word: "分享", pinyin: "fēn xiǎng", meaning: "share" },
+        { word: "分析", pinyin: "fēn xī", meaning: "analyse" },
+        { word: "丰富", pinyin: "fēng fù", meaning: "abundant" },
+        { word: "风景", pinyin: "fēng jǐng", meaning: "scenery" },
+
+        { word: "封面", pinyin: "fēng miàn", meaning: "cover page" },
+        { word: "服务", pinyin: "fú wù", meaning: "service" },
+        { word: "负责", pinyin: "fù zé", meaning: "responsible" },
+        { word: "附近", pinyin: "fù jìn", meaning: "nearby" },
+        { word: "复习", pinyin: "fù xí", meaning: "revise" },
+
+        { word: "改善", pinyin: "gǎi shàn", meaning: "improve" },
+        { word: "改变", pinyin: "gǎi biàn", meaning: "change" },
+        { word: "感动", pinyin: "gǎn dòng", meaning: "touched" },
+        { word: "感谢", pinyin: "gǎn xiè", meaning: "thankful" },
+        { word: "感想", pinyin: "gǎn xiǎng", meaning: "thoughts, reflections" },
+
+        { word: "刚才", pinyin: "gāng cái", meaning: "just now" },
+        { word: "钢琴", pinyin: "gāng qín", meaning: "piano" },
+        { word: "告诉", pinyin: "gào su", meaning: "tell" },
+        { word: "工程", pinyin: "gōng chéng", meaning: "project" },
+        { word: "工具", pinyin: "gōng jù", meaning: "tool" },
+
+        { word: "公平", pinyin: "gōng píng", meaning: "fair" },
+        { word: "公园", pinyin: "gōng yuán", meaning: "park" },
+        { word: "贡献", pinyin: "gòng xiàn", meaning: "contribute" },
+        { word: "沟通", pinyin: "gōu tōng", meaning: "communicate" },
+        { word: "鼓励", pinyin: "gǔ lì", meaning: "encourage" },
+
+        { word: "故意", pinyin: "gù yì", meaning: "deliberately" },
+        { word: "顾客", pinyin: "gù kè", meaning: "customer" },
+        { word: "观察", pinyin: "guān chá", meaning: "observe" },
+        { word: "关键", pinyin: "guān jiàn", meaning: "key, crucial" },
+        { word: "观众", pinyin: "guān zhòng", meaning: "audience" },
+
+        { word: "管理", pinyin: "guǎn lǐ", meaning: "manage" },
+        { word: "冠军", pinyin: "guàn jūn", meaning: "champion" },
+        { word: "光荣", pinyin: "guāng róng", meaning: "honourable" },
+        { word: "规定", pinyin: "guī dìng", meaning: "regulation" },
+        { word: "规律", pinyin: "guī lǜ", meaning: "pattern, law" },
+
+        { word: "果然", pinyin: "guǒ rán", meaning: "as expected" },
+        { word: "过程", pinyin: "guò chéng", meaning: "process" },
+        { word: "过分", pinyin: "guò fèn", meaning: "excessive" },
+        { word: "害怕", pinyin: "hài pà", meaning: "afraid" },
+        { word: "合作", pinyin: "hé zuò", meaning: "cooperate" },
+
+        { word: "和平", pinyin: "hé píng", meaning: "peace" },
+        { word: "合理", pinyin: "hé lǐ", meaning: "reasonable" },
+        { word: "核心", pinyin: "hé xīn", meaning: "core" },
+        { word: "贺卡", pinyin: "hè kǎ", meaning: "greeting card" },
+        { word: "后悔", pinyin: "hòu huǐ", meaning: "regret" },
+
+        { word: "忽然", pinyin: "hū rán", meaning: "suddenly" },
+        { word: "蝴蝶", pinyin: "hú dié", meaning: "butterfly" },
+        { word: "互相", pinyin: "hù xiāng", meaning: "each other" },
+        { word: "环保", pinyin: "huán bǎo", meaning: "environmental protection" },
+        { word: "环境", pinyin: "huán jìng", meaning: "environment" },
+
+        { word: "欢乐", pinyin: "huān lè", meaning: "joyful" },
+        { word: "黄昏", pinyin: "huáng hūn", meaning: "dusk" },
+        { word: "恢复", pinyin: "huī fù", meaning: "recover" },
+        { word: "会议", pinyin: "huì yì", meaning: "meeting" },
+        { word: "活动", pinyin: "huó dòng", meaning: "activity" },
+
+        { word: "获得", pinyin: "huò dé", meaning: "obtain" },
+        { word: "积极", pinyin: "jī jí", meaning: "positive" },
+        { word: "机会", pinyin: "jī huì", meaning: "opportunity" },
+        { word: "基本", pinyin: "jī běn", meaning: "basic" },
+        { word: "激动", pinyin: "jī dòng", meaning: "excited" },
+
+        { word: "及时", pinyin: "jí shí", meaning: "timely" },
+        { word: "记忆", pinyin: "jì yì", meaning: "memory" },
+        { word: "技术", pinyin: "jì shù", meaning: "technology, skill" },
+        { word: "继续", pinyin: "jì xù", meaning: "continue" },
+        { word: "计划", pinyin: "jì huà", meaning: "plan" },
+
+        { word: "纪律", pinyin: "jì lǜ", meaning: "discipline" },
+        { word: "寄信", pinyin: "jì xìn", meaning: "send a letter" },
+        { word: "家庭", pinyin: "jiā tíng", meaning: "family" },
+        { word: "家务", pinyin: "jiā wù", meaning: "housework" },
+        { word: "价值", pinyin: "jià zhí", meaning: "value" },
+
+        { word: "驾驶", pinyin: "jià shǐ", meaning: "drive" },
+        { word: "坚持", pinyin: "jiān chí", meaning: "persist" },
+        { word: "坚强", pinyin: "jiān qiáng", meaning: "strong-willed" },
+        { word: "简单", pinyin: "jiǎn dān", meaning: "simple" },
+        { word: "检查", pinyin: "jiǎn chá", meaning: "inspect" },
+
+        { word: "减少", pinyin: "jiǎn shǎo", meaning: "reduce" },
+        { word: "建设", pinyin: "jiàn shè", meaning: "construct" },
+        { word: "建议", pinyin: "jiàn yì", meaning: "suggestion" },
+        { word: "健康", pinyin: "jiàn kāng", meaning: "healthy" },
+        { word: "将来", pinyin: "jiāng lái", meaning: "future" },
+
+        { word: "奖励", pinyin: "jiǎng lì", meaning: "reward" },
+        { word: "讲话", pinyin: "jiǎng huà", meaning: "speech" },
+        { word: "交通", pinyin: "jiāo tōng", meaning: "traffic, transport" },
+        { word: "交流", pinyin: "jiāo liú", meaning: "communicate" },
+        { word: "郊外", pinyin: "jiāo wài", meaning: "outskirts" },
+
+        { word: "骄傲", pinyin: "jiāo ào", meaning: "proud" },
+        { word: "教育", pinyin: "jiào yù", meaning: "education" },
+        { word: "节省", pinyin: "jié shěng", meaning: "save, economize" },
+        { word: "节约", pinyin: "jié yuē", meaning: "conserve" },
+        { word: "结果", pinyin: "jié guǒ", meaning: "result" },
+
+        { word: "解释", pinyin: "jiě shì", meaning: "explain" },
+        { word: "尽力", pinyin: "jìn lì", meaning: "do one's best" },
+        { word: "进步", pinyin: "jìn bù", meaning: "progress" },
+        { word: "进行", pinyin: "jìn xíng", meaning: "carry out" },
+        { word: "经验", pinyin: "jīng yàn", meaning: "experience" },
+
+        { word: "精彩", pinyin: "jīng cǎi", meaning: "wonderful" },
+        { word: "精神", pinyin: "jīng shén", meaning: "spirit" },
+        { word: "景色", pinyin: "jǐng sè", meaning: "scenery" },
+        { word: "警察", pinyin: "jǐng chá", meaning: "police officer" },
+        { word: "究竟", pinyin: "jiū jìng", meaning: "after all" },
+
+        { word: "举办", pinyin: "jǔ bàn", meaning: "organize" },
+        { word: "举手", pinyin: "jǔ shǒu", meaning: "raise one's hand" },
+        { word: "聚会", pinyin: "jù huì", meaning: "gathering" },
+        { word: "决定", pinyin: "jué dìng", meaning: "decide" },
+        { word: "觉得", pinyin: "jué de", meaning: "feel, think" },
+
+        { word: "均匀", pinyin: "jūn yún", meaning: "evenly distributed" },
+        { word: "开展", pinyin: "kāi zhǎn", meaning: "launch, carry out" },
+        { word: "开放", pinyin: "kāi fàng", meaning: "open" },
+        { word: "开始", pinyin: "kāi shǐ", meaning: "begin" },
+        { word: "看法", pinyin: "kàn fǎ", meaning: "opinion" },
+
+        { word: "考虑", pinyin: "kǎo lǜ", meaning: "consider" },
+        { word: "考试", pinyin: "kǎo shì", meaning: "exam" },
+        { word: "科学", pinyin: "kē xué", meaning: "science" },
+        { word: "可惜", pinyin: "kě xī", meaning: "what a pity" },
+        { word: "克服", pinyin: "kè fú", meaning: "overcome" },
+
+        { word: "课堂", pinyin: "kè táng", meaning: "classroom lesson" },
+        { word: "空气", pinyin: "kōng qì", meaning: "air" },
+        { word: "控制", pinyin: "kòng zhì", meaning: "control" },
+        { word: "口号", pinyin: "kǒu hào", meaning: "slogan" },
+        { word: "苦恼", pinyin: "kǔ nǎo", meaning: "troubled" },
+
+        { word: "快乐", pinyin: "kuài lè", meaning: "happy" },
+        { word: "困难", pinyin: "kùn nán", meaning: "difficulty" },
+        { word: "垃圾", pinyin: "lā jī", meaning: "rubbish" },
+        { word: "劳动", pinyin: "láo dòng", meaning: "labour" },
+        { word: "老师", pinyin: "lǎo shī", meaning: "teacher" },
+
+        { word: "礼貌", pinyin: "lǐ mào", meaning: "polite" },
+        { word: "礼物", pinyin: "lǐ wù", meaning: "gift" },
+        { word: "理想", pinyin: "lǐ xiǎng", meaning: "ideal, aspiration" },
+        { word: "理解", pinyin: "lǐ jiě", meaning: "understand" },
+        { word: "厉害", pinyin: "lì hai", meaning: "impressive" },
+
+        { word: "力量", pinyin: "lì liàng", meaning: "strength" },
+        { word: "联系", pinyin: "lián xì", meaning: "contact" },
+        { word: "联合", pinyin: "lián hé", meaning: "unite" },
+        { word: "凉快", pinyin: "liáng kuai", meaning: "cool" },
+        { word: "良好", pinyin: "liáng hǎo", meaning: "good" },
+
+        { word: "聊天", pinyin: "liáo tiān", meaning: "chat" },
+        { word: "邻居", pinyin: "lín jū", meaning: "neighbour" },
+        { word: "领导", pinyin: "lǐng dǎo", meaning: "leadership" },
+        { word: "另外", pinyin: "lìng wài", meaning: "in addition" },
+        { word: "流利", pinyin: "liú lì", meaning: "fluent" },
+
+        { word: "留意", pinyin: "liú yì", meaning: "pay attention" },
+        { word: "旅游", pinyin: "lǚ yóu", meaning: "travel" },
+        { word: "绿色", pinyin: "lǜ sè", meaning: "green colour" },
+        { word: "马虎", pinyin: "mǎ hu", meaning: "careless" },
+        { word: "满足", pinyin: "mǎn zú", meaning: "satisfied" },
+
+        { word: "忙碌", pinyin: "máng lù", meaning: "busy" },
+        { word: "毛病", pinyin: "máo bìng", meaning: "fault, problem" },
+        { word: "美丽", pinyin: "měi lì", meaning: "beautiful" },
+        { word: "梦想", pinyin: "mèng xiǎng", meaning: "dream" },
+        { word: "迷路", pinyin: "mí lù", meaning: "get lost" },
+
+        { word: "秘密", pinyin: "mì mì", meaning: "secret" },
+        { word: "免费", pinyin: "miǎn fèi", meaning: "free of charge" },
+        { word: "面对", pinyin: "miàn duì", meaning: "face" },
+        { word: "明显", pinyin: "míng xiǎn", meaning: "obvious" },
+        { word: "目标", pinyin: "mù biāo", meaning: "goal" },
+
+        { word: "耐心", pinyin: "nài xīn", meaning: "patient" },
+        { word: "难道", pinyin: "nán dào", meaning: "could it be that" },
+        { word: "能力", pinyin: "néng lì", meaning: "ability" },
+        { word: "能源", pinyin: "néng yuán", meaning: "energy resources" },
+        { word: "农村", pinyin: "nóng cūn", meaning: "village" },
+
+        { word: "努力", pinyin: "nǔ lì", meaning: "work hard" },
+        { word: "偶尔", pinyin: "ǒu ěr", meaning: "occasionally" },
+        { word: "排队", pinyin: "pái duì", meaning: "queue" },
+        { word: "判断", pinyin: "pàn duàn", meaning: "judge" },
+        { word: "盼望", pinyin: "pàn wàng", meaning: "look forward to" },
+
+        { word: "培养", pinyin: "péi yǎng", meaning: "cultivate" },
+        { word: "陪伴", pinyin: "péi bàn", meaning: "accompany" },
+        { word: "批评", pinyin: "pī píng", meaning: "criticize" },
+        { word: "平安", pinyin: "píng ān", meaning: "safe and sound" },
+        { word: "平时", pinyin: "píng shí", meaning: "usually" },
+
+        { word: "品质", pinyin: "pǐn zhì", meaning: "quality" },
+        { word: "普通", pinyin: "pǔ tōng", meaning: "ordinary" },
+        { word: "期待", pinyin: "qī dài", meaning: "look forward to" },
+        { word: "期间", pinyin: "qī jiān", meaning: "during" },
+        { word: "其实", pinyin: "qí shí", meaning: "actually" },
+
+        { word: "奇怪", pinyin: "qí guài", meaning: "strange" },
+        { word: "启发", pinyin: "qǐ fā", meaning: "inspire" },
+        { word: "企业", pinyin: "qǐ yè", meaning: "enterprise" },
+        { word: "谦虚", pinyin: "qiān xū", meaning: "modest" },
+        { word: "前进", pinyin: "qián jìn", meaning: "move forward" },
+
+        { word: "强烈", pinyin: "qiáng liè", meaning: "strong, intense" },
+        { word: "悄悄", pinyin: "qiāo qiāo", meaning: "quietly" },
+        { word: "亲切", pinyin: "qīn qiè", meaning: "kind and friendly" },
+        { word: "清楚", pinyin: "qīng chǔ", meaning: "clear" },
+        { word: "情况", pinyin: "qíng kuàng", meaning: "situation" },
+
+        { word: "请求", pinyin: "qǐng qiú", meaning: "request" },
+        { word: "庆祝", pinyin: "qìng zhù", meaning: "celebrate" },
+        { word: "取得", pinyin: "qǔ dé", meaning: "obtain" },
+        { word: "缺点", pinyin: "quē diǎn", meaning: "shortcoming" },
+        { word: "确保", pinyin: "què bǎo", meaning: "ensure" },
+
+        { word: "热闹", pinyin: "rè nào", meaning: "lively" },
+        { word: "热情", pinyin: "rè qíng", meaning: "enthusiastic" },
+        { word: "认真", pinyin: "rèn zhēn", meaning: "serious, conscientious" },
+        { word: "任务", pinyin: "rèn wu", meaning: "task" },
+        { word: "仍然", pinyin: "réng rán", meaning: "still" },
+
+        { word: "荣誉", pinyin: "róng yù", meaning: "honour" },
+        { word: "容易", pinyin: "róng yì", meaning: "easy" },
+        { word: "如果", pinyin: "rú guǒ", meaning: "if" },
+        { word: "善良", pinyin: "shàn liáng", meaning: "kind-hearted" },
+        { word: "商量", pinyin: "shāng liang", meaning: "discuss" },
+
+        { word: "伤心", pinyin: "shāng xīn", meaning: "sad" },
+        { word: "商品", pinyin: "shāng pǐn", meaning: "goods, products" },
+        { word: "上网", pinyin: "shàng wǎng", meaning: "go online" },
+        { word: "设备", pinyin: "shè bèi", meaning: "equipment" },
+        { word: "设计", pinyin: "shè jì", meaning: "design" },
+
+        { word: "社会", pinyin: "shè huì", meaning: "society" },
+        { word: "申请", pinyin: "shēn qǐng", meaning: "apply" },
+        { word: "身体", pinyin: "shēn tǐ", meaning: "body, health" },
+        { word: "深刻", pinyin: "shēn kè", meaning: "profound" },
+        { word: "甚至", pinyin: "shèn zhì", meaning: "even" },
+
+        { word: "生产", pinyin: "shēng chǎn", meaning: "produce" },
+        { word: "生命", pinyin: "shēng mìng", meaning: "life" },
+        { word: "生气", pinyin: "shēng qì", meaning: "angry" },
+        { word: "胜利", pinyin: "shèng lì", meaning: "victory" },
+        { word: "失败", pinyin: "shī bài", meaning: "fail" },
+
+        { word: "失望", pinyin: "shī wàng", meaning: "disappointed" },
+        { word: "师傅", pinyin: "shī fu", meaning: "master, skilled worker" },
+        { word: "施工", pinyin: "shī gōng", meaning: "construction work" },
+        { word: "诗歌", pinyin: "shī gē", meaning: "poetry" },
+        { word: "实话", pinyin: "shí huà", meaning: "truth" },
+
+        { word: "实际", pinyin: "shí jì", meaning: "actual" },
+        { word: "实现", pinyin: "shí xiàn", meaning: "realize, achieve" },
+        { word: "实验", pinyin: "shí yàn", meaning: "experiment" },
+        { word: "使用", pinyin: "shǐ yòng", meaning: "use" },
+        { word: "始终", pinyin: "shǐ zhōng", meaning: "from beginning to end" },
+
+        { word: "市场", pinyin: "shì chǎng", meaning: "market" },
+        { word: "事情", pinyin: "shì qing", meaning: "matter, affair" },
+        { word: "适合", pinyin: "shì hé", meaning: "suitable" },
+        { word: "适应", pinyin: "shì yìng", meaning: "adapt" },
+        { word: "收获", pinyin: "shōu huò", meaning: "gain, harvest" },
+
+        { word: "收入", pinyin: "shōu rù", meaning: "income" },
+        { word: "守时", pinyin: "shǒu shí", meaning: "punctual" },
+        { word: "首先", pinyin: "shǒu xiān", meaning: "first of all" },
+        { word: "受伤", pinyin: "shòu shāng", meaning: "injured" },
+        { word: "售货员", pinyin: "shòu huò yuán", meaning: "salesperson" },
+
+        { word: "舒适", pinyin: "shū shì", meaning: "comfortable" },
+        { word: "熟悉", pinyin: "shú xī", meaning: "familiar" },
+        { word: "树立", pinyin: "shù lì", meaning: "establish" },
+        { word: "数据", pinyin: "shù jù", meaning: "data" },
+        { word: "顺便", pinyin: "shùn biàn", meaning: "conveniently" },
+
+        { word: "顺利", pinyin: "shùn lì", meaning: "smoothly" },
+        { word: "说明", pinyin: "shuō míng", meaning: "explain" },
+        { word: "思考", pinyin: "sī kǎo", meaning: "think" },
+        { word: "思想", pinyin: "sī xiǎng", meaning: "thought" },
+        { word: "私人", pinyin: "sī rén", meaning: "private" },
+
+        { word: "速度", pinyin: "sù dù", meaning: "speed" },
+        { word: "塑料", pinyin: "sù liào", meaning: "plastic" },
+        { word: "随便", pinyin: "suí biàn", meaning: "casual, random" },
+        { word: "随着", pinyin: "suí zhe", meaning: "along with" },
+        { word: "损失", pinyin: "sǔn shī", meaning: "loss" },
+
+        { word: "所有", pinyin: "suǒ yǒu", meaning: "all, possess" },
+        { word: "台风", pinyin: "tái fēng", meaning: "typhoon" },
+        { word: "太阳", pinyin: "tài yáng", meaning: "sun" },
+        { word: "态度", pinyin: "tài dù", meaning: "attitude" },
+        { word: "谈话", pinyin: "tán huà", meaning: "conversation" },
+
+        { word: "探望", pinyin: "tàn wàng", meaning: "visit" },
+        { word: "讨论", pinyin: "tǎo lùn", meaning: "discuss" },
+        { word: "特点", pinyin: "tè diǎn", meaning: "characteristic" },
+        { word: "特别", pinyin: "tè bié", meaning: "special" },
+        { word: "提高", pinyin: "tí gāo", meaning: "improve" },
+
+        { word: "提供", pinyin: "tí gōng", meaning: "provide" },
+        { word: "提醒", pinyin: "tí xǐng", meaning: "remind" },
+        { word: "体育", pinyin: "tǐ yù", meaning: "physical education" },
+        { word: "天气", pinyin: "tiān qì", meaning: "weather" },
+        { word: "条件", pinyin: "tiáo jiàn", meaning: "condition" },
+
+        { word: "挑战", pinyin: "tiǎo zhàn", meaning: "challenge" },
+        { word: "调整", pinyin: "tiáo zhěng", meaning: "adjust" },
+        { word: "通知", pinyin: "tōng zhī", meaning: "inform" },
+        { word: "同情", pinyin: "tóng qíng", meaning: "sympathize" },
+        { word: "统一", pinyin: "tǒng yī", meaning: "unify" },
+
+        { word: "投资", pinyin: "tóu zī", meaning: "invest" },
+        { word: "突然", pinyin: "tū rán", meaning: "suddenly" },
+        { word: "团结", pinyin: "tuán jié", meaning: "united" },
+        { word: "推动", pinyin: "tuī dòng", meaning: "promote, push" },
+        { word: "推荐", pinyin: "tuī jiàn", meaning: "recommend" },
+
+        { word: "完成", pinyin: "wán chéng", meaning: "complete" },
+        { word: "玩具", pinyin: "wán jù", meaning: "toy" },
+        { word: "顽强", pinyin: "wán qiáng", meaning: "tenacious" },
+        { word: "网络", pinyin: "wǎng luò", meaning: "internet" },
+        { word: "往往", pinyin: "wǎng wǎng", meaning: "often" },
+
+        { word: "危险", pinyin: "wēi xiǎn", meaning: "dangerous" },
+        { word: "微笑", pinyin: "wēi xiào", meaning: "smile" },
+        { word: "维护", pinyin: "wéi hù", meaning: "maintain, safeguard" },
+        { word: "伟大", pinyin: "wěi dà", meaning: "great" },
+        { word: "卫生", pinyin: "wèi shēng", meaning: "hygiene" },
+
+        { word: "温暖", pinyin: "wēn nuǎn", meaning: "warm" },
+        { word: "文明", pinyin: "wén míng", meaning: "civilized" },
+        { word: "文化", pinyin: "wén huà", meaning: "culture" },
+        { word: "文件", pinyin: "wén jiàn", meaning: "document" },
+        { word: "问题", pinyin: "wèn tí", meaning: "question, problem" },
+
+        { word: "污染", pinyin: "wū rǎn", meaning: "pollution" },
+        { word: "无论", pinyin: "wú lùn", meaning: "regardless of" },
+        { word: "误会", pinyin: "wù huì", meaning: "misunderstanding" },
+        { word: "吸引", pinyin: "xī yǐn", meaning: "attract" },
+        { word: "希望", pinyin: "xī wàng", meaning: "hope" },
+
+        { word: "习惯", pinyin: "xí guàn", meaning: "habit" },
+        { word: "洗手", pinyin: "xǐ shǒu", meaning: "wash hands" },
+        { word: "系统", pinyin: "xì tǒng", meaning: "system" },
+        { word: "细心", pinyin: "xì xīn", meaning: "careful" },
+        { word: "夏天", pinyin: "xià tiān", meaning: "summer" },
+
+        { word: "现代", pinyin: "xiàn dài", meaning: "modern" },
+        { word: "羡慕", pinyin: "xiàn mù", meaning: "admire, envy" },
+        { word: "相反", pinyin: "xiāng fǎn", meaning: "opposite" },
+        { word: "相关", pinyin: "xiāng guān", meaning: "related" },
+        { word: "相信", pinyin: "xiāng xìn", meaning: "believe" },
+
+        { word: "详细", pinyin: "xiáng xì", meaning: "detailed" },
+        { word: "享受", pinyin: "xiǎng shòu", meaning: "enjoy" },
+        { word: "项目", pinyin: "xiàng mù", meaning: "project" },
+        { word: "效果", pinyin: "xiào guǒ", meaning: "effect" },
+        { word: "笑容", pinyin: "xiào róng", meaning: "smile" },
+
+        { word: "心理", pinyin: "xīn lǐ", meaning: "mental state" },
+        { word: "辛苦", pinyin: "xīn kǔ", meaning: "hardworking, difficult" },
+        { word: "信任", pinyin: "xìn rèn", meaning: "trust" },
+        { word: "幸福", pinyin: "xìng fú", meaning: "happiness" },
+        { word: "兴趣", pinyin: "xìng qù", meaning: "interest" },
+
+        { word: "行为", pinyin: "xíng wéi", meaning: "behaviour" },
+        { word: "形成", pinyin: "xíng chéng", meaning: "form" },
+        { word: "行动", pinyin: "xíng dòng", meaning: "take action" },
+        { word: "幸运", pinyin: "xìng yùn", meaning: "lucky" },
+        { word: "训练", pinyin: "xùn liàn", meaning: "training" },
+
+        { word: "压力", pinyin: "yā lì", meaning: "pressure" },
+        { word: "研究", pinyin: "yán jiū", meaning: "research" },
+        { word: "严格", pinyin: "yán gé", meaning: "strict" },
+        { word: "延长", pinyin: "yán cháng", meaning: "extend" },
+        { word: "演讲", pinyin: "yǎn jiǎng", meaning: "speech" },
+
+        { word: "演出", pinyin: "yǎn chū", meaning: "performance" },
+        { word: "阳光", pinyin: "yáng guāng", meaning: "sunlight" },
+        { word: "养成", pinyin: "yǎng chéng", meaning: "develop (a habit)" },
+        { word: "要求", pinyin: "yāo qiú", meaning: "requirement" },
+        { word: "业务", pinyin: "yè wù", meaning: "business affairs" },
+
+        { word: "页码", pinyin: "yè mǎ", meaning: "page number" },
+        { word: "夜晚", pinyin: "yè wǎn", meaning: "night" },
+        { word: "依靠", pinyin: "yī kào", meaning: "depend on" },
+        { word: "意见", pinyin: "yì jiàn", meaning: "opinion" },
+        { word: "意义", pinyin: "yì yì", meaning: "meaning, significance" },
+
+        //成语 
+
+        { word: "专心致志", pinyin: "zhuān xīn zhì zhì", meaning: "fully concentrated" },
+        { word: "全神贯注", pinyin: "quán shén guàn zhù", meaning: "completely focused" },
+        { word: "聚精会神", pinyin: "jù jīng huì shén", meaning: "concentrate intensely" },
+        { word: "一心一意", pinyin: "yī xīn yī yì", meaning: "wholeheartedly" },
+        { word: "坚持不懈", pinyin: "jiān chí bù xiè", meaning: "persevere without giving up" },
+
+        { word: "持之以恒", pinyin: "chí zhī yǐ héng", meaning: "persist consistently" },
+        { word: "锲而不舍", pinyin: "qiè ér bù shě", meaning: "never give up" },
+        { word: "百折不挠", pinyin: "bǎi zhé bù náo", meaning: "indomitable" },
+        { word: "自强不息", pinyin: "zì qiáng bù xī", meaning: "strive constantly" },
+        { word: "脚踏实地", pinyin: "jiǎo tà shí dì", meaning: "down-to-earth" },
+
+        { word: "精益求精", pinyin: "jīng yì qiú jīng", meaning: "strive for perfection" },
+        { word: "实事求是", pinyin: "shí shì qiú shì", meaning: "seek truth from facts" },
+        { word: "井井有条", pinyin: "jǐng jǐng yǒu tiáo", meaning: "well organized" },
+        { word: "有条不紊", pinyin: "yǒu tiáo bù wěn", meaning: "orderly and systematic" },
+        { word: "胸有成竹", pinyin: "xiōng yǒu chéng zhú", meaning: "have a clear plan" },
+
+        { word: "津津有味", pinyin: "jīn jīn yǒu wèi", meaning: "with great interest" },
+        { word: "爱不释手", pinyin: "ài bù shì shǒu", meaning: "cannot bear to put down" },
+        { word: "迫不及待", pinyin: "pò bù jí dài", meaning: "cannot wait" },
+        { word: "兴高采烈", pinyin: "xìng gāo cǎi liè", meaning: "highly excited" },
+        { word: "眉开眼笑", pinyin: "méi kāi yǎn xiào", meaning: "beaming with joy" },
+
+        { word: "心花怒放", pinyin: "xīn huā nù fàng", meaning: "overjoyed" },
+        { word: "喜出望外", pinyin: "xǐ chū wàng wài", meaning: "pleasantly surprised" },
+        { word: "欣喜若狂", pinyin: "xīn xǐ ruò kuáng", meaning: "wild with joy" },
+        { word: "手舞足蹈", pinyin: "shǒu wǔ zú dǎo", meaning: "dance with excitement" },
+        { word: "笑容满面", pinyin: "xiào róng mǎn miàn", meaning: "all smiles" },
+
+        { word: "提心吊胆", pinyin: "tí xīn diào dǎn", meaning: "very worried" },
+        { word: "心惊胆战", pinyin: "xīn jīng dǎn zhàn", meaning: "terrified" },
+        { word: "胆战心惊", pinyin: "dǎn zhàn xīn jīng", meaning: "frightened" },
+        { word: "惊慌失措", pinyin: "jīng huāng shī cuò", meaning: "panic-stricken" },
+        { word: "手忙脚乱", pinyin: "shǒu máng jiǎo luàn", meaning: "flustered" },
+
+        { word: "大吃一惊", pinyin: "dà chī yī jīng", meaning: "greatly surprised" },
+        { word: "目瞪口呆", pinyin: "mù dèng kǒu dāi", meaning: "stunned" },
+        { word: "半途而废", pinyin: "bàn tú ér fèi", meaning: "give up halfway" },
+        { word: "不知所措", pinyin: "bù zhī suǒ cuò", meaning: "at a loss" },
+        { word: "无可奈何", pinyin: "wú kě nài hé", meaning: "have no choice" },
+
+        { word: "争先恐后", pinyin: "zhēng xiān kǒng hòu", meaning: "rush to be first" },
+        { word: "齐心协力", pinyin: "qí xīn xié lì", meaning: "work together" },
+        { word: "同心协力", pinyin: "tóng xīn xié lì", meaning: "unite efforts" },
+        { word: "守望相助", pinyin: "shǒu wàng xiāng zhù", meaning: "help one another" },
+        { word: "助人为乐", pinyin: "zhù rén wéi lè", meaning: "take pleasure in helping others" },
+
+        { word: "乐于助人", pinyin: "lè yú zhù rén", meaning: "willing to help others" },
+        { word: "见义勇为", pinyin: "jiàn yì yǒng wéi", meaning: "act bravely for justice" },
+        { word: "雪中送炭", pinyin: "xuě zhōng sòng tàn", meaning: "help in difficult times" },
+        { word: "拾金不昧", pinyin: "shí jīn bù mèi", meaning: "return lost property" },
+        { word: "舍己为人", pinyin: "shě jǐ wèi rén", meaning: "sacrifice oneself for others" },
+
+        { word: "饮水思源", pinyin: "yǐn shuǐ sī yuán", meaning: "remember gratitude" },
+        { word: "刻苦耐劳", pinyin: "kè kǔ nài láo", meaning: "hardworking and enduring" },
+        { word: "废寝忘食", pinyin: "fèi qǐn wàng shí", meaning: "work tirelessly" },
+        { word: "日新月异", pinyin: "rì xīn yuè yì", meaning: "rapidly changing" },
+        { word: "欣欣向荣", pinyin: "xīn xīn xiàng róng", meaning: "flourishing" }
+
+    ];
+
+        let currentIndex = 0;
+        const flashcard = document.getElementById("flashcard");
+        const chineseWord = document.getElementById("chineseWord");
+        const pinyin = document.getElementById("pinyin");
+        const meaning = document.getElementById("meaning");
+
+        // Load current word
+        function loadWord() {
+            const current = wordBank[currentIndex];
+            chineseWord.textContent = current.word;
+            pinyin.textContent = current.pinyin;
+            meaning.textContent = current.meaning;
+            flashcard.classList.remove("flipped");
+        }
+
+        // Flip card
+        flashcard.addEventListener("click", () => {
+            flashcard.classList.toggle("flipped");
+        });
+
+        function randomWord() {
+            currentIndex = Math.floor(Math.random() * wordBank.length);
+            loadWord();
+        }
+
+        // Load first word on start
+        loadWord();
+    </script>
+</body>
+</html>
